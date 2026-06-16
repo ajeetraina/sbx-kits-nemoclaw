@@ -12,6 +12,22 @@ onboarding, routed inference, and network policy. This kit installs the
 NemoClaw.
 
 
+## Run the published kit
+
+The kit is published on Docker Hub, so you can run it directly — no clone needed.
+Store the NVIDIA inference key once (see [Inference key](#inference-key)), then:
+
+```bash
+# OpenClaw (default)
+sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:latest claude
+
+# Hermes
+sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:hermes claude
+```
+
+`:latest` and `:openclaw` are the same image; `:hermes` selects the Hermes agent.
+The `claude` at the end is the sbx host agent — swap it for `codex`, `gemini`, etc.
+
 ## Layout
 
 ```
