@@ -23,7 +23,6 @@ environment:
     NEMOCLAW_PROVIDER: "build"                  # NVIDIA Endpoints (build.nvidia.com catalog)
     NEMOCLAW_NON_INTERACTIVE: "1"               # never block on a TTY prompt
     NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE: "1"   # accept the third-party software notice unattended
-    npm_config_prefix: "/home/agent/.local"     # global npm bins land in ~/.local/bin (no root needed)
 
   # NOTE: NVIDIA_INFERENCE_API_KEY is intentionally NOT set here and NOT listed
   # under proxyManaged — sbx has no built-in `nvidia` service. Inject it as a
@@ -42,9 +41,17 @@ commands:
     - command: "node --version"
       user: "1000"
       description: "Sanity check: NemoClaw requires Node.js >= 22.16 (fails fast if the base image is older)"
-    - command: "npm install -g 'git+https://github.com/NVIDIA/NemoClaw.git'"
+    # IMPORTANT: a plain `npm install -g git+...` does NOT work — NemoClaw's bin
+    # requires a compiled dist/ that only its `prepare` (TypeScript) build produces.
+    # So we clone, run `npm install` (prepare → builds dist/ via the local tsc
+    # devDep), then install globally. We `rm -rf .git` first because NemoClaw's
+    # prepare runs npm-link-or-shim.sh when a .git dir is present, which symlinks a
+    # ~/.local/bin shim INTO the source tree — that breaks once we delete /tmp.
+    # Without .git, only the proper global install remains (on the image's default
+    # global PATH, e.g. /usr/local/share/npm-global/bin).
+    - command: "git clone --depth 1 https://github.com/NVIDIA/NemoClaw.git /tmp/nemoclaw-src && cd /tmp/nemoclaw-src && rm -rf .git && for i in 1 2 3; do npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-timeout=300000 && break || { echo \"npm install attempt $i failed, retrying...\"; sleep 8; }; done && npm install -g . --force --no-audit --no-fund && rm -rf /tmp/nemoclaw-src"
       user: "1000"
-      description: "Install the nemoclaw / nemohermes CLIs from the NVIDIA NemoClaw repo into ~/.local/bin"
+      description: "Clone NemoClaw, build it (npm install runs the prepare/TypeScript build, retried on transient network resets), and install the nemoclaw + nemohermes CLIs globally"
 
   # A non-interactive onboarding template the agent can source before running
   # `nemoclaw onboard`. onlyIfMissing keeps user edits across restarts.
@@ -66,7 +73,6 @@ commands:
         export NEMOCLAW_PROVIDER="build"
         export NEMOCLAW_NON_INTERACTIVE="1"
         export NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE="1"
-        export PATH="/home/agent/.local/bin:$PATH"
 
 # Injected into the agent's memory file (CLAUDE.md / AGENTS.md) so the agent KNOWS
 # the capability exists and how to call it. (kit-spec v2 field name; older schemas
@@ -74,7 +80,7 @@ commands:
 agentContext: |
   ## NemoClaw (OpenClaw)
 
-  The NVIDIA NemoClaw CLI is installed (`~/.local/bin/nemoclaw`, also
+  The NVIDIA NemoClaw CLI is installed and on PATH (`nemoclaw`, also
   `nemohermes`). It runs always-on AI agents inside NVIDIA OpenShell sandboxes;
   this kit selects the **OpenClaw** agent and routes inference to NVIDIA
   Endpoints. Onboard non-interactively with:

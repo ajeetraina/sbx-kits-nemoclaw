@@ -117,9 +117,11 @@ NemoClaw is a **host-side orchestrator**, not a self-contained library like mem0
   standard sbx sandbox does not nest Docker, so full `nemoclaw onboard` is
   expected to run where a Docker daemon is reachable. This mixin's job is to
   **install and expose the CLI** so an agent can configure and drive NemoClaw.
-- The npm-from-git install runs NemoClaw's `prepare` build (TypeScript). It is the
-  most likely thing to need adjustment on a given base image — validate it with a
-  real `sbx run` before publishing.
+- A plain `npm install -g git+…NemoClaw.git` does **not** work: NemoClaw's bin
+  requires a compiled `dist/` that only its `prepare` (TypeScript) build produces.
+  The kit therefore clones, runs `npm install` (which builds `dist/` via the local
+  `tsc` devDep), then installs globally. Verified end-to-end on the `shell` and
+  `claude` base images (Node v22.22, npm 9) — `nemoclaw --version` → `v0.1.0`.
 
 These are honest limitations of putting an agent-orchestrator inside a sandbox;
 the kit is structured so each assumption (Node, install command, provider, secret
@@ -132,7 +134,7 @@ shell escapes inside the agent session):
 
 ```console
 # 1. The CLI the kit installed is on PATH at the expected version
-!~/.local/bin/nemoclaw --version
+!nemoclaw --version
 
 # 2. The env vars the kit set are present (these exist only in your spec)
 !env | grep -E 'NEMOCLAW_AGENT|NEMOCLAW_PROVIDER'

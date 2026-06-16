@@ -45,8 +45,9 @@ the key never enters the sandbox. `sbx run` has no `-e` flag by design.
 
 ## How it works
 
-Each kit installs the NemoClaw CLI from the NVIDIA repo via npm into
-`~/.local/bin`, sets `NEMOCLAW_AGENT` to the tag's agent, defaults
+Each kit clones the NemoClaw repo, builds it (the `npm install` `prepare` step
+compiles its TypeScript `dist/`), installs the `nemoclaw` / `nemohermes` CLIs
+globally on `PATH`, sets `NEMOCLAW_AGENT` to the tag's agent, defaults
 `NEMOCLAW_PROVIDER=build` (NVIDIA Endpoints), allows the install + inference
 domains, and writes `~/.nemoclaw/onboard.env` with non-interactive onboarding
 defaults. Inside the sandbox:
