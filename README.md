@@ -117,7 +117,7 @@ with `sbx secret set -g <service>` (e.g. `-g openai`). See
 
 ## The `agentContext` block matters
 
-Installing the CLI is not enough — the agent has to *know* it's there. The
+Installing the CLI is not enough. the agent has to *know* it's there. The
 `agentContext` block is appended to the agent's memory file (`CLAUDE.md` /
 `AGENTS.md`) so the agent reaches for NemoClaw and knows the onboarding one-liner.
 
