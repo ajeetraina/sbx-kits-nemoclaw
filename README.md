@@ -11,7 +11,7 @@ onboarding, routed inference, and network policy. This kit installs the
 `nemoclaw` / `nemohermes` CLIs so the sbx host agent can onboard and drive
 NemoClaw.
 
-> **Two different "agent" layers — don't conflate them:**
+> **Two different "agent" layers**
 > - **sbx host agent** (`claude` / `codex` / `gemini`): the agent sbx runs and
 >   that this mixin layers onto. Any of them works.
 > - **NemoClaw agent** (`OpenClaw` / `Hermes`): the agent *NemoClaw itself* runs
