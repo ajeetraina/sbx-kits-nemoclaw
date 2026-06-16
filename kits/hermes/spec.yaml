@@ -1,12 +1,9 @@
 schemaVersion: "1"
 kind: mixin
 name: nemoclaw
-displayName: NemoClaw (OpenClaw)
-description: "Adds the NVIDIA NemoClaw CLI (nemoclaw) to an agent and selects the OpenClaw agent, so the agent can onboard and drive always-on AI agents inside NVIDIA OpenShell sandboxes. Inference defaults to NVIDIA Endpoints; store the key with: sbx secret set -g nvidia (the kit holds no key)."
+displayName: NemoClaw (Hermes)
+description: "Adds the NVIDIA NemoClaw CLI and selects the Hermes agent (via the nemohermes alias), so the agent can onboard and drive always-on Hermes agents inside NVIDIA OpenShell sandboxes. Inference defaults to NVIDIA Endpoints; store the key with: sbx secret set -g nvidia (the kit holds no key)."
 
-# Install pulls the CLI from GitHub via npm; runtime inference defaults to
-# NVIDIA Endpoints (integrate.api.nvidia.com). Switch providers by editing
-# NEMOCLAW_PROVIDER + the matching *_API_KEY (see agents/README.md).
 network:
   allowedDomains:
     - github.com
@@ -18,21 +15,17 @@ network:
 
 environment:
   variables:
-    NEMOCLAW_AGENT: "openclaw"                  # OpenClaw is the default NemoClaw agent
+    NEMOCLAW_AGENT: "hermes"                    # select the Hermes agent (vs the default OpenClaw)
     NEMOCLAW_PROVIDER: "build"                  # NVIDIA Endpoints (build.nvidia.com catalog)
     NEMOCLAW_NON_INTERACTIVE: "1"               # never block on a TTY prompt
     NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE: "1"   # accept the third-party software notice unattended
     NVIDIA_INFERENCE_API_KEY: "placeholder"     # real value injected by the sbx proxy (see proxyManaged)
     npm_config_prefix: "/home/agent/.local"     # global npm bins land in ~/.local/bin (no root needed)
 
-  # The sbx proxy injects this secret's value at runtime from `sbx secret set -g nvidia`.
-  # The key never enters the spec, the image, or the sandbox filesystem.
   proxyManaged:
     - NVIDIA_INFERENCE_API_KEY
 
 commands:
-  # Runs ONCE at sandbox creation, as the agent user. Installs the `nemoclaw` and
-  # `nemohermes` CLIs from the NVIDIA repo. NemoClaw requires Node.js >= 22.16.
   install:
     - command: "node --version"
       user: "1000"
@@ -41,41 +34,35 @@ commands:
       user: "1000"
       description: "Install the nemoclaw / nemohermes CLIs from the NVIDIA NemoClaw repo into ~/.local/bin"
 
-  # A non-interactive onboarding template the agent can source before running
-  # `nemoclaw onboard`. onlyIfMissing keeps user edits across restarts.
   initFiles:
     - path: /home/agent/.nemoclaw/onboard.env
       mode: "0644"
       onlyIfMissing: true
-      description: "Non-interactive onboarding defaults for NemoClaw (OpenClaw + NVIDIA Endpoints)"
+      description: "Non-interactive onboarding defaults for NemoClaw (Hermes + NVIDIA Endpoints)"
       content: |
-        # Source this, then run `nemoclaw onboard --non-interactive`.
+        # Source this, then run `nemohermes onboard --non-interactive`
+        # (or `nemoclaw onboard` with NEMOCLAW_AGENT=hermes already set).
         # Switch providers by changing NEMOCLAW_PROVIDER and the matching key:
         #   build      -> NVIDIA_INFERENCE_API_KEY   (integrate.api.nvidia.com)
         #   openai     -> OPENAI_API_KEY             (api.openai.com)
         #   anthropic  -> ANTHROPIC_API_KEY          (api.anthropic.com)
         #   gemini     -> GEMINI_API_KEY             (generativelanguage.googleapis.com)
         #   custom     -> COMPATIBLE_API_KEY + NEMOCLAW_ENDPOINT_URL + NEMOCLAW_MODEL
-        export NEMOCLAW_AGENT="openclaw"
+        export NEMOCLAW_AGENT="hermes"
         export NEMOCLAW_PROVIDER="build"
         export NEMOCLAW_NON_INTERACTIVE="1"
         export NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE="1"
         export PATH="/home/agent/.local/bin:$PATH"
 
-# Injected into the agent's memory file (CLAUDE.md / AGENTS.md) so the agent KNOWS
-# the capability exists and how to call it.
-#
-# NOTE: newer sbx schemas call this `agentContext`. If `sbx kit validate` rejects
-# `memory`, rename it to `agentContext`.
 memory: |
-  ## NemoClaw (OpenClaw)
+  ## NemoClaw (Hermes)
 
-  The NVIDIA NemoClaw CLI is installed (`~/.local/bin/nemoclaw`, also
-  `nemohermes`). It runs always-on AI agents inside NVIDIA OpenShell sandboxes;
-  this kit selects the **OpenClaw** agent and defaults inference to NVIDIA
+  The NVIDIA NemoClaw CLI is installed (`~/.local/bin/nemohermes`, also
+  `nemoclaw`). It runs always-on AI agents inside NVIDIA OpenShell sandboxes;
+  this kit selects the **Hermes** agent and defaults inference to NVIDIA
   Endpoints. Onboard non-interactively with:
 
-      source ~/.nemoclaw/onboard.env && nemoclaw onboard --non-interactive
+      source ~/.nemoclaw/onboard.env && nemohermes onboard --non-interactive
 
   The NVIDIA_INFERENCE_API_KEY value is injected by the sbx proxy. NemoClaw needs
   Docker on the host to create OpenShell sandboxes (see the kit README caveats).

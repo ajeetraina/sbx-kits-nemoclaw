@@ -1,3 +1,12 @@
 .DS_Store
 *.log
 /tmp/
+.sbx/.env
+.sbx/*.env
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/node_modules/
+*.tar
+*.zip
+*.claude
