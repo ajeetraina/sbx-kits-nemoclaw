@@ -123,25 +123,47 @@ Installing the CLI is not enough — the agent has to *know* it's there. The
 
 > `agentContext` is the kit-spec v2 field name; older schemas called it `memory`.
 
-## Caveats (read before relying on this)
+## What this kit does — and the hard limit
 
-NemoClaw is a **host-side orchestrator**, not a self-contained library like mem0:
+NemoClaw is a **host-side orchestrator**, not a self-contained library like mem0.
+Be precise about what the mixin can and cannot do inside an sbx sandbox.
 
-- It requires **Node.js ≥ 22.16** in the sandbox base image. The first install
-  step (`node --version`) fails fast if the base image is older.
-- It creates OpenShell sandboxes using **Docker + k3s** and an ~2.4 GB image. A
-  standard sbx sandbox does not nest Docker, so full `nemoclaw onboard` is
-  expected to run where a Docker daemon is reachable. This mixin's job is to
-  **install and expose the CLI** so an agent can configure and drive NemoClaw.
-- A plain `npm install -g git+…NemoClaw.git` does **not** work: NemoClaw's bin
-  requires a compiled `dist/` that only its `prepare` (TypeScript) build produces.
-  The kit therefore clones, runs `npm install` (which builds `dist/` via the local
-  `tsc` devDep), then installs globally. Verified end-to-end on the `shell` and
-  `claude` base images (Node v22.22, npm 9) — `nemoclaw --version` → `v0.1.0`.
+**✅ Works (verified):**
+- Installs a working `nemoclaw` / `nemohermes` CLI. Note: a plain
+  `npm install -g git+…NemoClaw.git` does **not** work — NemoClaw's bin needs a
+  compiled `dist/` that only its `prepare` (TypeScript) build produces (the
+  published `nemoclaw@0.1.0` on npm is broken the same way). The kit therefore
+  clones, runs `npm install` (builds `dist/` via the local `tsc` devDep), drops
+  `.git` (so `prepare`'s `npm-link-or-shim.sh` doesn't symlink a shim into the
+  deleted source tree), then installs globally. Verified on the `shell` and
+  `claude` base images (Node v22.22, npm 9) → `nemoclaw --version` = `v0.1.0`.
+- CLI inspection/config and **cloud / routed inference** setup
+  (`NEMOCLAW_PROVIDER=build` → NVIDIA Endpoints) — the parts that don't need a
+  local OpenShell gateway.
 
-These are honest limitations of putting an agent-orchestrator inside a sandbox;
-the kit is structured so each assumption (Node, install command, provider, secret
-name) is a single, clearly-labeled line in `spec.yaml` you can change.
+**❌ Does NOT work — `nemoclaw onboard` creating a *local* OpenShell sandbox.**
+This is a structural wall, not a kit bug. NemoClaw's gateway runs **k3s**, and
+k3s's kubelet needs `/dev/kmsg`:
+
+```
+failed to run Kubelet: ... open /dev/kmsg: no such file or directory
+```
+
+Docker Sandboxes **deliberately** does not expose `/dev/kmsg` to the workload (it
+leaks host kernel state); k3s **requires** it for node health. Two security models
+collide — both correct for their threat model — so no env var, install step, or
+privilege flag in this kit can bridge it. The local-OpenShell layer must run where
+a real host kernel is reachable (bare host, a VM, or NemoClaw's cloud-only mode).
+
+Full writeup of the nesting and the exact wall:
+[*I tried to run NVIDIA NemoClaw inside Docker Sandboxes — it got seven layers deep before hitting a wall*](https://www.ajeetraina.com/i-tried-to-run-nvidia-nemoclaw-inside-docker-sandboxes-it-got-seven-layers-deep-before-hitting-a-wall/).
+
+**Other note:** NemoClaw requires **Node.js ≥ 22.16** in the base image; the first
+install step (`node --version`) fails fast if it's older.
+
+So treat this as a **CLI + cloud-mode** mixin, not a "run OpenShell inside sbx"
+one. The kit is structured so each assumption (Node, install command, provider,
+secret name) is a single, clearly-labeled line in `spec.yaml` you can change.
 
 ## Proving the mixin is inside the sandbox
 

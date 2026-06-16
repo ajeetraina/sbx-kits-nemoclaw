@@ -54,13 +54,19 @@ defaults. Inside the sandbox:
 
     source ~/.nemoclaw/onboard.env && nemoclaw onboard --non-interactive
 
-## Caveats
+## Caveats — this is a CLI + cloud-mode mixin
 
-NemoClaw is a host-side orchestrator: it needs **Node.js 22.16+** and **Docker**
-to create OpenShell sandboxes (Docker + k3s + an ~2.4 GB image). A standard sbx
-sandbox does not nest Docker, so this mixin is primarily for **installing and
-driving the CLI** from an agent; full `nemoclaw onboard` runs where a Docker
-daemon is reachable. See the GitHub README for details.
+The kit installs and drives the `nemoclaw` / `nemohermes` CLI and supports cloud /
+routed inference (NVIDIA Endpoints). It does **not** let you run NemoClaw's full
+**local** OpenShell stack inside an sbx sandbox.
+
+`nemoclaw onboard`'s gateway runs **k3s**, whose kubelet needs `/dev/kmsg`
+(`open /dev/kmsg: no such file or directory`). Docker Sandboxes deliberately
+withholds `/dev/kmsg` from the workload, and k3s requires it — a structural
+collision no kit setting can bridge. Run the local-OpenShell layer on a real host
+/ VM, or use NemoClaw's cloud-only mode. NemoClaw also needs **Node.js 22.16+**.
+
+Full writeup: https://www.ajeetraina.com/i-tried-to-run-nvidia-nemoclaw-inside-docker-sandboxes-it-got-seven-layers-deep-before-hitting-a-wall/
 
 Per-agent setup notes and the raw `spec.yaml` for each kit live on GitHub:
 https://github.com/ajeetraina/sbx-kits-nemoclaw/tree/main/agents
