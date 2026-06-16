@@ -51,7 +51,7 @@ LICENSE                    # Apache-2.0
    sbx run --kit ./ claude              # OpenClaw
    sbx run --kit ./kits/hermes claude   # Hermes
    ```
-4. **Publish** when it works:
+4. **Publish**:
    ```console
    DOCKERHUB_NAMESPACE=<you> ./scripts/push-kits.sh
    # then: sbx run --kit docker.io/<you>/sbx-nemoclaw-kits:latest claude
