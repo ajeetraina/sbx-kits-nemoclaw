@@ -118,6 +118,3 @@ shell escapes inside the agent session):
 `#2` + `#3` are the distinguishing signature that the **mixin** (not a manual
 install) wired things up, since both are declared only in `spec.yaml`.
 
-## License
-
-Apache-2.0. See [LICENSE](./LICENSE).
