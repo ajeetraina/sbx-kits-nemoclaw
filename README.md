@@ -11,12 +11,6 @@ onboarding, routed inference, and network policy. This kit installs the
 `nemoclaw` / `nemohermes` CLIs so the sbx host agent can onboard and drive
 NemoClaw.
 
-> **Two different "agent" layers**
-> - **sbx host agent** (`claude` / `codex` / `gemini`): the agent sbx runs and
->   that this mixin layers onto. Any of them works.
-> - **NemoClaw agent** (`OpenClaw` / `Hermes`): the agent *NemoClaw itself* runs
->   inside OpenShell. NemoClaw supports exactly these two, and the kit ships **one
->   image tag per NemoClaw agent**: `:openclaw` (default) and `:hermes`.
 
 ## Layout
 
@@ -95,12 +89,6 @@ What this does (`sbx secret set-custom --help`):
 So the real key never enters the spec, the image, or the sandbox filesystem
 (`sbx run` has no `-e` flag). That is why the spec does **not** declare
 `NVIDIA_INFERENCE_API_KEY` and does **not** use `proxyManaged`.
-
-> ⚠️ **Two caveats.** `sbx secret set-custom` is marked **EXPERIMENTAL** (may
-> change or be removed in future sbx releases). It also has **no stdin option** —
-> the value is passed via `--value`, which sbx flags as "visible in shell
-> history", so pass it from an env var (as above) rather than the literal key.
-> Built-in providers (below) avoid both caveats.
 
 ### Switching to a built-in provider instead
 
