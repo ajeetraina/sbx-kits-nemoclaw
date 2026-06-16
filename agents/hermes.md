@@ -16,20 +16,35 @@ onboarding (curated models such as `moonshotai/kimi-k2.6` and
 `openai/gpt-5.4-mini`). The kit defaults to NVIDIA Endpoints; pick the Hermes
 Provider route interactively with `nemohermes onboard` if you prefer it.
 
-## Credential (store it as a secret, never on the command line)
+## Credential (store it as a custom secret)
+
+NVIDIA is **not** a built-in sbx secret service, so store the key as a *custom*
+secret bound to the NVIDIA host. The sandbox sees only a `nvapi-…` placeholder;
+the proxy swaps in the real key on requests to that host:
+
+> ⚠️ `sbx secret set-custom` is marked **EXPERIMENTAL** (may change in future sbx
+> releases), and it has **no stdin option** — the value is passed via `--value`,
+> which sbx flags as "visible in shell history". Pass it from an env var (as below)
+> rather than pasting the literal key, and clear your history if needed.
 
 ```bash
-echo "$NVIDIA_INFERENCE_API_KEY" | sbx secret set -g nvidia
+sbx secret set-custom -g \
+  --host integrate.api.nvidia.com \
+  --env NVIDIA_INFERENCE_API_KEY \
+  --placeholder 'nvapi-{rand}' \
+  --value "$NVIDIA_INFERENCE_API_KEY"
 ```
 
-> `nvidia` is the secret name the kit expects via `proxyManaged`. If your sbx
-> build does not recognize it as a managed service, store it under whatever name
-> your proxy maps to `NVIDIA_INFERENCE_API_KEY` and adjust `spec.yaml`.
+> The `nvapi-{rand}` placeholder satisfies NemoClaw's local `nvapi-` prefix check
+> while the real key stays on the proxy. This is why the spec does **not** declare
+> `NVIDIA_INFERENCE_API_KEY` or use `proxyManaged`.
 
 ## Run
 
 ```bash
-echo "$NVIDIA_INFERENCE_API_KEY" | sbx secret set -g nvidia
+sbx secret set-custom -g --host integrate.api.nvidia.com \
+  --env NVIDIA_INFERENCE_API_KEY --placeholder 'nvapi-{rand}' \
+  --value "$NVIDIA_INFERENCE_API_KEY"
 sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:hermes claude
 # or straight from this repo:
 sbx run --kit ./kits/hermes claude

@@ -5,7 +5,12 @@ A standalone [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) kit
 CLI to any sandbox agent. NemoClaw runs always-on AI agents inside
 [NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) sandboxes, with guided
 onboarding, routed inference, and network-policy controls. This image ships one
-tag per supported agent.
+tag per supported **NemoClaw agent**.
+
+> Two distinct "agent" layers: the **sbx host agent** (`claude` / `codex` /
+> `gemini`) is what `sbx run` launches and this mixin layers onto; the **NemoClaw
+> agent** (`OpenClaw` / `Hermes`) is what NemoClaw runs inside OpenShell. The image
+> tags below select the NemoClaw agent.
 
 Source and full docs: https://github.com/ajeetraina/sbx-kits-nemoclaw
 
@@ -23,18 +28,20 @@ OpenAI-compatible endpoint at onboarding time.
 
 ## Quick start
 
-Store your NVIDIA inference key once with sbx (never on the command line), then run:
+NVIDIA is not a built-in sbx secret service, so store the key as a custom secret
+bound to the NVIDIA host, then run (`set-custom` is experimental; it takes the
+value via `--value`, so pass it from an env var rather than the literal key):
 
-    echo "$NVIDIA_INFERENCE_API_KEY" | sbx secret set -g nvidia
+    sbx secret set-custom -g --host integrate.api.nvidia.com \
+      --env NVIDIA_INFERENCE_API_KEY --placeholder 'nvapi-{rand}' \
+      --value "$NVIDIA_INFERENCE_API_KEY"
+
     sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:latest claude   # OpenClaw
+    sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:hermes claude   # Hermes
 
-Hermes:
-
-    echo "$NVIDIA_INFERENCE_API_KEY" | sbx secret set -g nvidia
-    sbx run --kit docker.io/ajeetraina777/sbx-nemoclaw-kits:hermes claude
-
-The kit holds no key. The sbx proxy injects it from the stored secret, so the key
-never enters the sandbox. `sbx run` has no `-e` flag by design.
+The kit holds no key. The sandbox sees only a `nvapi-…` placeholder; the sbx proxy
+swaps it for the real key on outbound requests to `integrate.api.nvidia.com`, so
+the key never enters the sandbox. `sbx run` has no `-e` flag by design.
 
 ## How it works
 

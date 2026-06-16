@@ -2,14 +2,21 @@
 
 A **mixin kit** for [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/)
 (`sbx`) that adds the [NVIDIA NemoClaw](https://github.com/NVIDIA/NemoClaw) CLI to
-an existing sbx agent (`claude`, `codex`, `gemini`, …).
+whatever **sbx host agent** you run (`claude`, `codex`, `gemini`, … — the agent in
+`sbx run --kit ./ claude`).
 
 NemoClaw is a reference stack for running always-on AI agents inside
 [NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) sandboxes, with guided
 onboarding, routed inference, and network policy. This kit installs the
-`nemoclaw` / `nemohermes` CLIs so whatever agent you already run can onboard and
-drive NemoClaw. It ships **one image tag per supported agent**: OpenClaw (default)
-and Hermes.
+`nemoclaw` / `nemohermes` CLIs so the sbx host agent can onboard and drive
+NemoClaw.
+
+> **Two different "agent" layers — don't conflate them:**
+> - **sbx host agent** (`claude` / `codex` / `gemini`): the agent sbx runs and
+>   that this mixin layers onto. Any of them works.
+> - **NemoClaw agent** (`OpenClaw` / `Hermes`): the agent *NemoClaw itself* runs
+>   inside OpenShell. NemoClaw supports exactly these two, and the kit ships **one
+>   image tag per NemoClaw agent**: `:openclaw` (default) and `:hermes`.
 
 ## Layout
 
@@ -33,13 +40,18 @@ LICENSE                    # Apache-2.0
    sbx kit validate .
    sbx kit validate ./kits/hermes
    ```
-2. **Try it without publishing** by layering the local directory onto an agent:
+2. **Store the inference key** (see [Inference key](#inference-key) below):
    ```console
-   echo "$NVIDIA_INFERENCE_API_KEY" | sbx secret set -g nvidia
+   sbx secret set-custom -g --host integrate.api.nvidia.com \
+     --env NVIDIA_INFERENCE_API_KEY --placeholder 'nvapi-{rand}' \
+     --value "$NVIDIA_INFERENCE_API_KEY"
+   ```
+3. **Try it without publishing** by layering the local directory onto an agent:
+   ```console
    sbx run --kit ./ claude              # OpenClaw
    sbx run --kit ./kits/hermes claude   # Hermes
    ```
-3. **Publish** when it works:
+4. **Publish** when it works:
    ```console
    DOCKERHUB_NAMESPACE=<you> ./scripts/push-kits.sh
    # then: sbx run --kit docker.io/<you>/sbx-nemoclaw-kits:latest claude
@@ -49,26 +61,55 @@ LICENSE                    # Apache-2.0
 
 | Axis | Choices | How it's selected |
 |---|---|---|
-| **Agent** (image tag) | OpenClaw (default), Hermes | `NEMOCLAW_AGENT` — one kit per agent |
+| **NemoClaw agent** (image tag) | OpenClaw (default), Hermes | `NEMOCLAW_AGENT` — one kit per NemoClaw agent |
 | **Inference provider** | NVIDIA Endpoints (default), OpenAI, Anthropic, Gemini, custom | `NEMOCLAW_PROVIDER` + matching `*_API_KEY` at onboarding |
+
+(The **sbx host agent** — `claude` / `codex` / `gemini` — is a separate, third
+choice you make on the `sbx run` command line; it is independent of both axes.)
 
 Both kits default inference to **NVIDIA Endpoints** (`build.nvidia.com`,
 `NVIDIA_INFERENCE_API_KEY`). See [`agents/README.md`](./agents/README.md) for the
 full provider matrix and how to switch.
 
-## Secrets: never hardcode
+## Inference key
 
-The kit contains no API key. Instead:
+The kit contains no API key. NemoClaw defaults to **NVIDIA Endpoints**, and sbx
+has **no built-in `nvidia` secret service** — so the key is injected as a
+**custom secret** bound to the NVIDIA host:
 
-1. The var name is declared under `environment.proxyManaged`
-   (`NVIDIA_INFERENCE_API_KEY`).
-2. You store the value once: `sbx secret set -g nvidia`.
-3. The sbx proxy injects it at runtime (`sbx run` has no `-e` flag), so the key
-   never enters the spec, the image, or the sandbox filesystem.
+```console
+sbx secret set-custom -g \
+  --host integrate.api.nvidia.com \
+  --env NVIDIA_INFERENCE_API_KEY \
+  --placeholder 'nvapi-{rand}' \
+  --value "$NVIDIA_INFERENCE_API_KEY"
+```
 
-To switch provider you swap the key var in both `environment.variables` and
-`environment.proxyManaged`, add the provider's API host to
-`network.allowedDomains`, and store the matching secret.
+What this does (`sbx secret set-custom --help`):
+
+- sets `NVIDIA_INFERENCE_API_KEY` in the sandbox to a `nvapi-…` **placeholder**
+  (the `nvapi-` prefix satisfies NemoClaw's local key-format check), and
+- the sbx proxy swaps the placeholder for the real key **only** on outbound
+  requests to `integrate.api.nvidia.com`.
+
+So the real key never enters the spec, the image, or the sandbox filesystem
+(`sbx run` has no `-e` flag). That is why the spec does **not** declare
+`NVIDIA_INFERENCE_API_KEY` and does **not** use `proxyManaged`.
+
+> ⚠️ **Two caveats.** `sbx secret set-custom` is marked **EXPERIMENTAL** (may
+> change or be removed in future sbx releases). It also has **no stdin option** —
+> the value is passed via `--value`, which sbx flags as "visible in shell
+> history", so pass it from an env var (as above) rather than the literal key.
+> Built-in providers (below) avoid both caveats.
+
+### Switching to a built-in provider instead
+
+OpenAI, Anthropic, and Google **are** built-in sbx services, so for those you can
+use the simpler `proxyManaged` path: set `NEMOCLAW_PROVIDER` (`openai` /
+`anthropic` / `gemini`), swap `integrate.api.nvidia.com` in `allowedDomains` for
+that provider's host, add the key var to `environment.proxyManaged`, and store it
+with `sbx secret set -g <service>` (e.g. `-g openai`). See
+[`agents/README.md`](./agents/README.md) for the full matrix.
 
 ## The `agentContext` block matters
 
