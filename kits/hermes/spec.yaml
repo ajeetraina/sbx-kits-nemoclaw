@@ -54,7 +54,7 @@ commands:
         export NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE="1"
         export PATH="/home/agent/.local/bin:$PATH"
 
-memory: |
+agentContext: |
   ## NemoClaw (Hermes)
 
   The NVIDIA NemoClaw CLI is installed (`~/.local/bin/nemohermes`, also

@@ -63,11 +63,9 @@ commands:
         export PATH="/home/agent/.local/bin:$PATH"
 
 # Injected into the agent's memory file (CLAUDE.md / AGENTS.md) so the agent KNOWS
-# the capability exists and how to call it.
-#
-# NOTE: newer sbx schemas call this `agentContext`. If `sbx kit validate` rejects
-# `memory`, rename it to `agentContext`.
-memory: |
+# the capability exists and how to call it. (kit-spec v2 field name; older schemas
+# called this `memory`.)
+agentContext: |
   ## NemoClaw (OpenClaw)
 
   The NVIDIA NemoClaw CLI is installed (`~/.local/bin/nemoclaw`, also

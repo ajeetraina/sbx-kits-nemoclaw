@@ -70,14 +70,13 @@ To switch provider you swap the key var in both `environment.variables` and
 `environment.proxyManaged`, add the provider's API host to
 `network.allowedDomains`, and store the matching secret.
 
-## The `memory` block matters
+## The `agentContext` block matters
 
 Installing the CLI is not enough — the agent has to *know* it's there. The
-`memory` block is appended to the agent's memory file (`CLAUDE.md` / `AGENTS.md`)
-so the agent reaches for NemoClaw and knows the onboarding one-liner.
+`agentContext` block is appended to the agent's memory file (`CLAUDE.md` /
+`AGENTS.md`) so the agent reaches for NemoClaw and knows the onboarding one-liner.
 
-> Newer sbx schemas name this field `agentContext`. If `sbx kit validate` rejects
-> `memory`, rename it.
+> `agentContext` is the kit-spec v2 field name; older schemas called it `memory`.
 
 ## Caveats (read before relying on this)
 
