@@ -123,7 +123,7 @@ Installing the CLI is not enough. the agent has to *know* it's there. The
 
 > `agentContext` is the kit-spec v2 field name; older schemas called it `memory`.
 
-## What this kit does — and the hard limit
+## What this kit does and the hard limit
 
 NemoClaw is a **host-side orchestrator**, not a self-contained library like mem0.
 Be precise about what the mixin can and cannot do inside an sbx sandbox.
