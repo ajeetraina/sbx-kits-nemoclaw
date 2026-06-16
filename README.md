@@ -11,9 +11,6 @@ onboarding, routed inference, and network policy. This kit installs the
 drive NemoClaw. It ships **one image tag per supported agent**: OpenClaw (default)
 and Hermes.
 
-> Built from the same layout as the reference mixin
-> [`sbx-kits-mem0`](https://github.com/ajeetraina/sbx-kits-mem0).
-
 ## Layout
 
 ```
